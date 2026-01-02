@@ -61,6 +61,18 @@ func Test_multiply3(t *testing.T) {
 	}
 }
 
+func Test_multiply4(t *testing.T) {
+	x, y, R, N := testParams()
+
+	result := multiply4(x, y, R, N)
+
+	expected := new(big.Int).Mod(new(big.Int).Mul(x, y), N)
+
+	if result.Cmp(expected) != 0 {
+		t.Errorf("redc(%v, %v, %v, %v) = %v; want %v", x, y, R, N, result, expected)
+	}
+}
+
 func testParams() (x, y, R, N *big.Int) {
 	x, _ = new(big.Int).SetString(""+
 		"a3b2c1d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2"+
@@ -158,6 +170,36 @@ func TestMontgomeryCIOS_Mul(t *testing.T) {
 func Benchmark_MontgomeryCIOS_Mul(b *testing.B) {
 	x, y, R, N := testParams()
 	m := NewMontgomeryCIOS(R, N)
+
+	for b.Loop() {
+		m.Mul(x, y)
+	}
+}
+
+func Benchmark_multiply4(b *testing.B) {
+	x, y, R, N := testParams()
+
+	for b.Loop() {
+		multiply4(x, y, R, N)
+	}
+}
+
+func TestMontgomeryWords_Mul(t *testing.T) {
+	x, y, R, N := testParams()
+
+	m := NewMontgomeryWords(R, N)
+	result := m.Mul(x, y)
+
+	expected := new(big.Int).Mod(new(big.Int).Mul(x, y), N)
+
+	if result.Cmp(expected) != 0 {
+		t.Errorf("MontgomeryWords.Mul(%v, %v) = %v; want %v", x, y, result, expected)
+	}
+}
+
+func Benchmark_MontgomeryWords_Mul(b *testing.B) {
+	x, y, R, N := testParams()
+	m := NewMontgomeryWords(R, N)
 
 	for b.Loop() {
 		m.Mul(x, y)
