@@ -211,7 +211,7 @@ func redc2(x, y, R, N *big.Int) *big.Int {
 
 	s := R.BitLen() / wordSize
 
-	for i := 0; i < s; i++ {
+	for i := range s {
 		var yi big.Word = 0
 		if i < len(yy.Bits()) {
 			yi = yy.Bits()[i]
