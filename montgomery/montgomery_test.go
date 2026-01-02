@@ -128,16 +128,38 @@ func testParams() (x, y, R, N *big.Int) {
 
 func Benchmark_multiply(b *testing.B) {
 	x, y, R, N := testParams()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+
+	for b.Loop() {
 		multiply(x, y, R, N)
 	}
 }
 
 func Benchmark_multiply2(b *testing.B) {
 	x, y, R, N := testParams()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+
+	for b.Loop() {
 		multiply2(x, y, R, N)
+	}
+}
+
+func TestMontgomery_Mul(t *testing.T) {
+	x, y, R, N := testParams()
+
+	m := NewMontgomery(R, N)
+	result := m.Mul(x, y)
+
+	expected := new(big.Int).Mod(new(big.Int).Mul(x, y), N)
+
+	if result.Cmp(expected) != 0 {
+		t.Errorf("Montgomery.Mul(%v, %v) = %v; want %v", x, y, result, expected)
+	}
+}
+
+func Benchmark_Montgomery_Mul(b *testing.B) {
+	x, y, R, N := testParams()
+	m := NewMontgomery(R, N)
+
+	for b.Loop() {
+		m.Mul(x, y)
 	}
 }
