@@ -1,3 +1,14 @@
+// Package montgomery provides implementations of Montgomery multiplication,
+// an efficient algorithm for modular arithmetic used in cryptography.
+//
+// Montgomery multiplication avoids costly division operations by transforming
+// operands into "Montgomery form" (multiplied by R mod N), performing arithmetic
+// in this domain, and then converting back.
+//
+// This package offers several implementations with different performance characteristics:
+//   - Montgomery: Basic bit-by-bit REDC algorithm
+//   - MontgomeryCIOS: CIOS algorithm (word-by-word) using big.Int internally
+//   - MontgomeryWords: CIOS algorithm using []uint64 for better performance
 package montgomery
 
 import (
@@ -121,7 +132,8 @@ func (m *MontgomeryCIOS) redc(x, y *big.Int) *big.Int {
 	return T
 }
 
-// MontgomeryWords holds precomputed values for word-by-word Montgomery multiplication using redc3.
+// MontgomeryWords holds precomputed values for CIOS Montgomery multiplication
+// with optimized []uint64 representation for better performance.
 type MontgomeryWords struct {
 	R  *big.Int // R = 2^k
 	N  *big.Int // modulus (must be odd)
@@ -149,7 +161,7 @@ func NewMontgomeryWords(R, N *big.Int) *MontgomeryWords {
 	}
 }
 
-// Mul computes (x * y) mod N using word-by-word Montgomery multiplication.
+// Mul computes (x * y) mod N using CIOS Montgomery multiplication.
 func (m *MontgomeryWords) Mul(x, y *big.Int) *big.Int {
 	// Convert to Montgomery form using precomputed R²
 	xMont := m.redc(x, m.RR)
@@ -164,7 +176,7 @@ func (m *MontgomeryWords) Mul(x, y *big.Int) *big.Int {
 	return result
 }
 
-// redc performs Montgomery reduction using word-by-word operations.
+// redc performs CIOS Montgomery reduction: (x * y * R⁻¹) mod N.
 func (m *MontgomeryWords) redc(x, y *big.Int) *big.Int {
 	T := make([]uint64, len(x.Bits())+len(y.Bits())+m.S+1)
 
@@ -193,6 +205,11 @@ func (m *MontgomeryWords) redc(x, y *big.Int) *big.Int {
 	return t
 }
 
+// newtonRaphsonInverse computes -n^(-1) mod 2^64 using Newton-Raphson iteration.
+//
+// This value is used in Montgomery reduction to find the correction factor.
+// The algorithm starts with x=1 (correct for 1 bit) and doubles precision
+// each iteration via x = x * (2 - n*x), reaching 64-bit precision in 6 steps.
 func newtonRaphsonInverse(n uint64) uint64 {
 	x := uint64(1)
 
@@ -205,6 +222,7 @@ func newtonRaphsonInverse(n uint64) uint64 {
 	return -x
 }
 
+// tobigInt converts a slice of uint64 words (little-endian) to *big.Int.
 func tobigInt(words []uint64) *big.Int {
 	bits := make([]big.Word, len(words))
 	for i, v := range words {
@@ -215,6 +233,7 @@ func tobigInt(words []uint64) *big.Int {
 	return result
 }
 
+// frombigInt converts a *big.Int to a slice of uint64 words (little-endian).
 func frombigInt(x *big.Int) []uint64 {
 	words := x.Bits()
 	result := make([]uint64, len(words))
@@ -224,6 +243,11 @@ func frombigInt(x *big.Int) []uint64 {
 	return result
 }
 
+// mulAddScalar computes T += arr * scalar using 64-bit word arithmetic.
+//
+// It performs a multiply-accumulate operation where each word of arr is
+// multiplied by scalar, added to the corresponding word in T, with carry
+// propagation handled correctly across word boundaries.
 func mulAddScalar(T []uint64, arr []uint64, scalar uint64) {
 	carry := uint64(0)
 	for i, ai := range arr {
@@ -240,6 +264,11 @@ func mulAddScalar(T []uint64, arr []uint64, scalar uint64) {
 	}
 }
 
+// multiply computes (x * y) mod N using basic Montgomery multiplication.
+//
+// This is a straightforward implementation that converts operands to Montgomery
+// form using direct multiplication (xR mod N), which requires expensive mod operations.
+// For better performance, use Montgomery.Mul which uses REDC for the conversion.
 func multiply(x, y, R, N *big.Int) *big.Int {
 	// Convert x and y to Montgomery form: xR mod N, yR mod N
 	xMont := new(big.Int).Mul(x, R)
@@ -257,6 +286,11 @@ func multiply(x, y, R, N *big.Int) *big.Int {
 	return result
 }
 
+// redc performs bit-by-bit Montgomery reduction: (x * y * R⁻¹) mod N.
+//
+// The algorithm processes one bit at a time: if the LSB is 1, add N to make
+// it even, then right-shift (divide by 2). After k iterations (where R = 2^k),
+// the result is (x * y * R⁻¹) mod N.
 func redc(x, y, R, N *big.Int) *big.Int {
 	result := new(big.Int).Mul(x, y)
 
@@ -274,6 +308,11 @@ func redc(x, y, R, N *big.Int) *big.Int {
 	return result
 }
 
+// multiply2 computes (x * y) mod N using REDC-based Montgomery conversion.
+//
+// Unlike multiply, this version uses R² mod N to convert operands to Montgomery
+// form via REDC instead of direct multiplication, avoiding one mod operation
+// per operand during conversion.
 func multiply2(x, y, R, N *big.Int) *big.Int {
 	rr := new(big.Int).Mul(R, R)
 	rr = rr.Mod(rr, N)
@@ -292,6 +331,10 @@ func multiply2(x, y, R, N *big.Int) *big.Int {
 	return result
 }
 
+// multiply3 computes (x * y) mod N using word-by-word CIOS reduction (redc2).
+//
+// This version uses the CIOS algorithm which processes one 64-bit word at a time
+// instead of one bit, significantly reducing the number of iterations from k to k/64.
 func multiply3(x, y, R, N *big.Int) *big.Int {
 	rr := new(big.Int).Mul(R, R)
 	rr = rr.Mod(rr, N)
@@ -310,6 +353,11 @@ func multiply3(x, y, R, N *big.Int) *big.Int {
 	return result
 }
 
+// redc2 performs CIOS Montgomery reduction using big.Int operations.
+//
+// CIOS (Coarsely Integrated Operand Scanning) processes 64 bits per iteration.
+// For each word y[i]: T += x * y[i], then compute correction m = T * N' mod 2^64,
+// add m * N to T, and shift right by 64 bits.
 func redc2(x, y, R, N *big.Int) *big.Int {
 	T := new(big.Int)
 	yy := new(big.Int).Set(y)
@@ -338,6 +386,10 @@ func redc2(x, y, R, N *big.Int) *big.Int {
 	return T
 }
 
+// multiply4 computes (x * y) mod N using CIOS reduction with []uint64.
+//
+// This version uses []uint64 slices for intermediate computation instead of big.Int,
+// providing better performance by avoiding big.Int allocation overhead.
 func multiply4(x, y, R, N *big.Int) *big.Int {
 	rr := new(big.Int).Mul(R, R)
 	rr = rr.Mod(rr, N)
@@ -356,6 +408,10 @@ func multiply4(x, y, R, N *big.Int) *big.Int {
 	return result
 }
 
+// redc3 performs CIOS Montgomery reduction using []uint64 word arrays.
+//
+// Each iteration processes one 64-bit word of y: T += x * y[i], computes
+// correction m = T[0] * N' mod 2^64, adds m * N to T, and shifts by one word.
 func redc3(x, y, R, N *big.Int) *big.Int {
 	wordSize := 64
 	s := R.BitLen() / wordSize
