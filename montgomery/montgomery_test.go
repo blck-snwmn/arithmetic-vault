@@ -25,10 +25,10 @@ func Test_newtonRaphsonInverse(t *testing.T) {
 	}
 }
 
-func Test_multiply(t *testing.T) {
+func Test_multiplyNaive(t *testing.T) {
 	x, y, R, N := testParams()
 
-	result := multiply(x, y, R, N)
+	result := multiplyNaive(x, y, R, N)
 
 	expected := new(big.Int).Mod(new(big.Int).Mul(x, y), N)
 
@@ -37,10 +37,10 @@ func Test_multiply(t *testing.T) {
 	}
 }
 
-func Test_multiply2(t *testing.T) {
+func Test_multiplyBitwise(t *testing.T) {
 	x, y, R, N := testParams()
 
-	result := multiply2(x, y, R, N)
+	result := multiplyBitwise(x, y, R, N)
 
 	expected := new(big.Int).Mod(new(big.Int).Mul(x, y), N)
 
@@ -49,10 +49,10 @@ func Test_multiply2(t *testing.T) {
 	}
 }
 
-func Test_multiply3(t *testing.T) {
+func Test_multiplyCIOS(t *testing.T) {
 	x, y, R, N := testParams()
 
-	result := multiply3(x, y, R, N)
+	result := multiplyCIOS(x, y, R, N)
 
 	expected := new(big.Int).Mod(new(big.Int).Mul(x, y), N)
 
@@ -61,10 +61,10 @@ func Test_multiply3(t *testing.T) {
 	}
 }
 
-func Test_multiply4(t *testing.T) {
+func Test_multiplyCIOSWords(t *testing.T) {
 	x, y, R, N := testParams()
 
-	result := multiply4(x, y, R, N)
+	result := multiplyCIOSWords(x, y, R, N)
 
 	expected := new(big.Int).Mod(new(big.Int).Mul(x, y), N)
 
@@ -108,46 +108,46 @@ func testParams() (x, y, R, N *big.Int) {
 	return
 }
 
-func Benchmark_multiply(b *testing.B) {
+func Benchmark_multiplyNaive(b *testing.B) {
 	x, y, R, N := testParams()
 
 	for b.Loop() {
-		multiply(x, y, R, N)
+		multiplyNaive(x, y, R, N)
 	}
 }
 
-func Benchmark_multiply2(b *testing.B) {
+func Benchmark_multiplyBitwise(b *testing.B) {
 	x, y, R, N := testParams()
 
 	for b.Loop() {
-		multiply2(x, y, R, N)
+		multiplyBitwise(x, y, R, N)
 	}
 }
 
-func Benchmark_multiply3(b *testing.B) {
+func Benchmark_multiplyCIOS(b *testing.B) {
 	x, y, R, N := testParams()
 
 	for b.Loop() {
-		multiply3(x, y, R, N)
+		multiplyCIOS(x, y, R, N)
 	}
 }
 
-func TestMontgomery_Mul(t *testing.T) {
+func TestMontgomeryBitwise_Mul(t *testing.T) {
 	x, y, R, N := testParams()
 
-	m := NewMontgomery(R, N)
+	m := NewMontgomeryBitwise(R, N)
 	result := m.Mul(x, y)
 
 	expected := new(big.Int).Mod(new(big.Int).Mul(x, y), N)
 
 	if result.Cmp(expected) != 0 {
-		t.Errorf("Montgomery.Mul(%v, %v) = %v; want %v", x, y, result, expected)
+		t.Errorf("MontgomeryBitwise.Mul(%v, %v) = %v; want %v", x, y, result, expected)
 	}
 }
 
-func Benchmark_Montgomery_Mul(b *testing.B) {
+func Benchmark_MontgomeryBitwise_Mul(b *testing.B) {
 	x, y, R, N := testParams()
-	m := NewMontgomery(R, N)
+	m := NewMontgomeryBitwise(R, N)
 
 	for b.Loop() {
 		m.Mul(x, y)
@@ -176,30 +176,30 @@ func Benchmark_MontgomeryCIOS_Mul(b *testing.B) {
 	}
 }
 
-func Benchmark_multiply4(b *testing.B) {
+func Benchmark_multiplyCIOSWords(b *testing.B) {
 	x, y, R, N := testParams()
 
 	for b.Loop() {
-		multiply4(x, y, R, N)
+		multiplyCIOSWords(x, y, R, N)
 	}
 }
 
-func TestMontgomeryWords_Mul(t *testing.T) {
+func TestMontgomeryCIOSWords_Mul(t *testing.T) {
 	x, y, R, N := testParams()
 
-	m := NewMontgomeryWords(R, N)
+	m := NewMontgomeryCIOSWords(R, N)
 	result := m.Mul(x, y)
 
 	expected := new(big.Int).Mod(new(big.Int).Mul(x, y), N)
 
 	if result.Cmp(expected) != 0 {
-		t.Errorf("MontgomeryWords.Mul(%v, %v) = %v; want %v", x, y, result, expected)
+		t.Errorf("MontgomeryCIOSWords.Mul(%v, %v) = %v; want %v", x, y, result, expected)
 	}
 }
 
-func Benchmark_MontgomeryWords_Mul(b *testing.B) {
+func Benchmark_MontgomeryCIOSWords_Mul(b *testing.B) {
 	x, y, R, N := testParams()
-	m := NewMontgomeryWords(R, N)
+	m := NewMontgomeryCIOSWords(R, N)
 
 	for b.Loop() {
 		m.Mul(x, y)
