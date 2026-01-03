@@ -37,42 +37,6 @@ func Test_multiplyNaive(t *testing.T) {
 	}
 }
 
-func Test_multiplyBitwise(t *testing.T) {
-	x, y, R, N := testParams()
-
-	result := multiplyBitwise(x, y, R, N)
-
-	expected := new(big.Int).Mod(new(big.Int).Mul(x, y), N)
-
-	if result.Cmp(expected) != 0 {
-		t.Errorf("redc(%v, %v, %v, %v) = %v; want %v", x, y, R, N, result, expected)
-	}
-}
-
-func Test_multiplyCIOS(t *testing.T) {
-	x, y, R, N := testParams()
-
-	result := multiplyCIOS(x, y, R, N)
-
-	expected := new(big.Int).Mod(new(big.Int).Mul(x, y), N)
-
-	if result.Cmp(expected) != 0 {
-		t.Errorf("redc(%v, %v, %v, %v) = %v; want %v", x, y, R, N, result, expected)
-	}
-}
-
-func Test_multiplyCIOSWords(t *testing.T) {
-	x, y, R, N := testParams()
-
-	result := multiplyCIOSWords(x, y, R, N)
-
-	expected := new(big.Int).Mod(new(big.Int).Mul(x, y), N)
-
-	if result.Cmp(expected) != 0 {
-		t.Errorf("redc(%v, %v, %v, %v) = %v; want %v", x, y, R, N, result, expected)
-	}
-}
-
 func testParams() (x, y, R, N *big.Int) {
 	x, _ = new(big.Int).SetString(""+
 		"a3b2c1d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2"+
@@ -113,22 +77,6 @@ func Benchmark_multiplyNaive(b *testing.B) {
 
 	for b.Loop() {
 		multiplyNaive(x, y, R, N)
-	}
-}
-
-func Benchmark_multiplyBitwise(b *testing.B) {
-	x, y, R, N := testParams()
-
-	for b.Loop() {
-		multiplyBitwise(x, y, R, N)
-	}
-}
-
-func Benchmark_multiplyCIOS(b *testing.B) {
-	x, y, R, N := testParams()
-
-	for b.Loop() {
-		multiplyCIOS(x, y, R, N)
 	}
 }
 
@@ -173,14 +121,6 @@ func Benchmark_MontgomeryCIOS_Mul(b *testing.B) {
 
 	for b.Loop() {
 		m.Mul(x, y)
-	}
-}
-
-func Benchmark_multiplyCIOSWords(b *testing.B) {
-	x, y, R, N := testParams()
-
-	for b.Loop() {
-		multiplyCIOSWords(x, y, R, N)
 	}
 }
 
