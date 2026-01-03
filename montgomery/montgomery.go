@@ -108,7 +108,7 @@ func (m *MontgomeryCIOS) Mul(x, y *big.Int) *big.Int {
 	return result
 }
 
-// redc performs CIOS Montgomery reduction: (x * y * R⁻¹) mod N
+// redc performs CIOS Montgomery reduction: (x * y * R⁻¹) mod N.
 func (m *MontgomeryCIOS) redc(x, y *big.Int) *big.Int {
 	T := new(big.Int)
 	yy := new(big.Int).Set(y)
@@ -161,7 +161,8 @@ func NewMontgomeryCIOSWords(R, N *big.Int) *MontgomeryCIOSWords {
 	}
 }
 
-// Mul computes (x * y) mod N using CIOS Montgomery multiplication.
+// Mul computes (x * y) mod N using CIOS Montgomery multiplication
+// with optimized []uint64 word operations.
 func (m *MontgomeryCIOSWords) Mul(x, y *big.Int) *big.Int {
 	// Convert to Montgomery form using precomputed R²
 	xMont := m.redc(x, m.RR)
@@ -264,11 +265,14 @@ func mulAddScalar(T []uint64, arr []uint64, scalar uint64) {
 	}
 }
 
-// multiply computes (x * y) mod N using basic Montgomery multiplication.
+// multiplyNaive computes (x * y) mod N using basic Montgomery multiplication.
 //
-// This is a straightforward implementation that converts operands to Montgomery
-// form using direct multiplication (xR mod N), which requires expensive mod operations.
-// For better performance, use Montgomery.Mul which uses REDC for the conversion.
+// This is a naive reference implementation for testing and educational purposes.
+// It converts operands to Montgomery form using direct modular multiplication
+// (xR mod N), which requires expensive division operations.
+//
+// For production use, prefer MontgomeryBitwise, MontgomeryCIOS, or
+// MontgomeryCIOSWords which use precomputed R² and REDC for efficient conversion.
 func multiplyNaive(x, y, R, N *big.Int) *big.Int {
 	// Convert x and y to Montgomery form: xR mod N, yR mod N
 	xMont := new(big.Int).Mul(x, R)
@@ -286,7 +290,7 @@ func multiplyNaive(x, y, R, N *big.Int) *big.Int {
 	return result
 }
 
-// redc performs bit-by-bit Montgomery reduction: (x * y * R⁻¹) mod N.
+// redcBitwise performs bit-by-bit Montgomery reduction: (x * y * R⁻¹) mod N.
 //
 // The algorithm processes one bit at a time: if the LSB is 1, add N to make
 // it even, then right-shift (divide by 2). After k iterations (where R = 2^k),
