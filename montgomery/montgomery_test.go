@@ -271,6 +271,144 @@ func TestMontgomeryMulProperty(t *testing.T) {
 	})
 }
 
+func TestModExp(t *testing.T) {
+	t.Parallel()
+
+	N64, _ := new(big.Int).SetString("fffffffffffffffb", 16)
+	R64 := new(big.Int).Lsh(big.NewInt(1), 64)
+
+	tests := []struct {
+		name string
+		base int64
+		exp  int64
+		N    *big.Int
+		R    *big.Int
+	}{
+		{"2^10 mod N64", 2, 10, N64, R64},
+		{"3^7 mod N64", 3, 7, N64, R64},
+		{"7^11 mod N64", 7, 11, N64, R64},
+		{"base=1", 1, 100, N64, R64},
+		{"exp=0", 12345, 0, N64, R64},
+		{"exp=1", 12345, 1, N64, R64},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			base := big.NewInt(tc.base)
+			exp := big.NewInt(tc.exp)
+			want := new(big.Int).Exp(base, exp, tc.N)
+
+			t.Run("Bitwise", func(t *testing.T) {
+				t.Parallel()
+				m := NewMontgomeryBitwise(tc.R, tc.N)
+				got := m.modExp(base, exp)
+				if got.Cmp(want) != 0 {
+					t.Errorf("modExp(%d, %d) = %v; want %v", tc.base, tc.exp, got, want)
+				}
+			})
+
+			t.Run("CIOS", func(t *testing.T) {
+				t.Parallel()
+				m := NewMontgomeryCIOS(tc.R, tc.N)
+				got := m.modExp(base, exp)
+				if got.Cmp(want) != 0 {
+					t.Errorf("modExp(%d, %d) = %v; want %v", tc.base, tc.exp, got, want)
+				}
+			})
+
+			t.Run("CIOSWords", func(t *testing.T) {
+				t.Parallel()
+				m := NewMontgomeryCIOSWords(tc.R, tc.N)
+				got := m.modExp(base, exp)
+				if got.Cmp(want) != 0 {
+					t.Errorf("modExp(%d, %d) = %v; want %v", tc.base, tc.exp, got, want)
+				}
+			})
+		})
+	}
+}
+
+func TestModExpProperty(t *testing.T) {
+	t.Parallel()
+
+	_, _, R, N := testParams2048()
+
+	t.Run("Bitwise", func(t *testing.T) {
+		t.Parallel()
+		m := NewMontgomeryBitwise(R, N)
+
+		err := quick.Check(func(baseBytes []byte, expBytes []byte) bool {
+			base := new(big.Int).SetBytes(baseBytes)
+			exp := new(big.Int).SetBytes(expBytes)
+			base.Mod(base, N)
+
+			// Limit exponent size for reasonable test time
+			if exp.BitLen() > 32 {
+				exp.SetInt64(int64(exp.Uint64() & 0xFFFFFFFF))
+			}
+
+			got := m.modExp(base, exp)
+			want := new(big.Int).Exp(base, exp, N)
+
+			return got.Cmp(want) == 0
+		}, &quick.Config{MaxCount: 50})
+
+		if err != nil {
+			t.Error(err)
+		}
+	})
+
+	t.Run("CIOS", func(t *testing.T) {
+		t.Parallel()
+		m := NewMontgomeryCIOS(R, N)
+
+		err := quick.Check(func(baseBytes []byte, expBytes []byte) bool {
+			base := new(big.Int).SetBytes(baseBytes)
+			exp := new(big.Int).SetBytes(expBytes)
+			base.Mod(base, N)
+
+			if exp.BitLen() > 32 {
+				exp.SetInt64(int64(exp.Uint64() & 0xFFFFFFFF))
+			}
+
+			got := m.modExp(base, exp)
+			want := new(big.Int).Exp(base, exp, N)
+
+			return got.Cmp(want) == 0
+		}, &quick.Config{MaxCount: 50})
+
+		if err != nil {
+			t.Error(err)
+		}
+	})
+
+	t.Run("CIOSWords", func(t *testing.T) {
+		t.Parallel()
+		m := NewMontgomeryCIOSWords(R, N)
+
+		err := quick.Check(func(baseBytes []byte, expBytes []byte) bool {
+			base := new(big.Int).SetBytes(baseBytes)
+			exp := new(big.Int).SetBytes(expBytes)
+			base.Mod(base, N)
+
+			if exp.BitLen() > 32 {
+				exp.SetInt64(int64(exp.Uint64() & 0xFFFFFFFF))
+			}
+
+			got := m.modExp(base, exp)
+			want := new(big.Int).Exp(base, exp, N)
+
+			return got.Cmp(want) == 0
+		}, &quick.Config{MaxCount: 50})
+
+		if err != nil {
+			t.Error(err)
+		}
+	})
+}
+
 func Benchmark_multiplyNaive(b *testing.B) {
 	x, y, R, N := testParams2048()
 
@@ -300,6 +438,42 @@ func BenchmarkMontgomeryMul(b *testing.B) {
 		m := NewMontgomeryCIOSWords(R, N)
 		for b.Loop() {
 			m.Mul(x, y)
+		}
+	})
+}
+
+// BenchmarkModExp measures Montgomery's amortized advantage.
+// With modular exponentiation, conversion cost is paid only at start/end,
+// while many multiplications happen efficiently in the Montgomery domain.
+func BenchmarkModExp(b *testing.B) {
+	base, _, R, N := testParams2048()
+	// Use a realistic exponent (e.g., 2048-bit for RSA-like operations)
+	exp := new(big.Int).Sub(N, big.NewInt(1))
+
+	b.Run("Montgomery/Bitwise", func(b *testing.B) {
+		m := NewMontgomeryBitwise(R, N)
+		for b.Loop() {
+			m.modExp(base, exp)
+		}
+	})
+
+	b.Run("Montgomery/CIOS", func(b *testing.B) {
+		m := NewMontgomeryCIOS(R, N)
+		for b.Loop() {
+			m.modExp(base, exp)
+		}
+	})
+
+	b.Run("Montgomery/CIOSWords", func(b *testing.B) {
+		m := NewMontgomeryCIOSWords(R, N)
+		for b.Loop() {
+			m.modExp(base, exp)
+		}
+	})
+
+	b.Run("BigInt/Exp", func(b *testing.B) {
+		for b.Loop() {
+			new(big.Int).Exp(base, exp, N)
 		}
 	})
 }

@@ -67,6 +67,28 @@ func (m *MontgomeryBitwise) redc(x, y *big.Int) *big.Int {
 	return result
 }
 
+// modExp computes base^exp mod N using Montgomery multiplication.
+// This demonstrates Montgomery's amortized advantage: conversion cost
+// is paid once at start/end, while many multiplications happen efficiently.
+func (m *MontgomeryBitwise) modExp(base, exp *big.Int) *big.Int {
+	// Convert base to Montgomery form (1 conversion)
+	baseMont := m.redc(base, m.RR)
+
+	// Montgomery form of 1: 1 * R mod N
+	result := m.redc(big.NewInt(1), m.RR)
+
+	// Square-and-multiply in Montgomery domain (many multiplications)
+	for i := exp.BitLen() - 1; i >= 0; i-- {
+		result = m.redc(result, result) // square
+		if exp.Bit(i) == 1 {
+			result = m.redc(result, baseMont) // multiply
+		}
+	}
+
+	// Convert back from Montgomery form (1 conversion)
+	return m.redc(result, big.NewInt(1))
+}
+
 // MontgomeryCIOS holds precomputed values for word-by-word Montgomery multiplication (CIOS algorithm).
 type MontgomeryCIOS struct {
 	R  *big.Int // R = 2^k
@@ -130,6 +152,28 @@ func (m *MontgomeryCIOS) redc(x, y *big.Int) *big.Int {
 		T.Sub(T, m.N)
 	}
 	return T
+}
+
+// modExp computes base^exp mod N using Montgomery multiplication.
+// This demonstrates Montgomery's amortized advantage: conversion cost
+// is paid once at start/end, while many multiplications happen efficiently.
+func (m *MontgomeryCIOS) modExp(base, exp *big.Int) *big.Int {
+	// Convert base to Montgomery form (1 conversion)
+	baseMont := m.redc(base, m.RR)
+
+	// Montgomery form of 1: 1 * R mod N
+	result := m.redc(big.NewInt(1), m.RR)
+
+	// Square-and-multiply in Montgomery domain (many multiplications)
+	for i := exp.BitLen() - 1; i >= 0; i-- {
+		result = m.redc(result, result) // square
+		if exp.Bit(i) == 1 {
+			result = m.redc(result, baseMont) // multiply
+		}
+	}
+
+	// Convert back from Montgomery form (1 conversion)
+	return m.redc(result, big.NewInt(1))
 }
 
 // MontgomeryCIOSWords holds precomputed values for CIOS Montgomery multiplication
@@ -208,6 +252,28 @@ func (m *MontgomeryCIOSWords) redc(x, y *big.Int) *big.Int {
 		t.Sub(t, m.N)
 	}
 	return t
+}
+
+// modExp computes base^exp mod N using Montgomery multiplication.
+// This demonstrates Montgomery's amortized advantage: conversion cost
+// is paid once at start/end, while many multiplications happen efficiently.
+func (m *MontgomeryCIOSWords) modExp(base, exp *big.Int) *big.Int {
+	// Convert base to Montgomery form (1 conversion)
+	baseMont := m.redc(base, m.RR)
+
+	// Montgomery form of 1: 1 * R mod N
+	result := m.redc(big.NewInt(1), m.RR)
+
+	// Square-and-multiply in Montgomery domain (many multiplications)
+	for i := exp.BitLen() - 1; i >= 0; i-- {
+		result = m.redc(result, result) // square
+		if exp.Bit(i) == 1 {
+			result = m.redc(result, baseMont) // multiply
+		}
+	}
+
+	// Convert back from Montgomery form (1 conversion)
+	return m.redc(result, big.NewInt(1))
 }
 
 // newtonRaphsonInverse computes -n^(-1) mod 2^64 using Newton-Raphson iteration.
