@@ -179,10 +179,14 @@ func (m *MontgomeryCIOSWords) Mul(x, y *big.Int) *big.Int {
 
 // redc performs CIOS Montgomery reduction: (x * y * R⁻¹) mod N.
 func (m *MontgomeryCIOSWords) redc(x, y *big.Int) *big.Int {
-	T := make([]uint64, len(x.Bits())+len(y.Bits())+m.S+1)
-
 	xx := frombigInt(x)
 	yy := frombigInt(y)
+
+	// T needs enough space for:
+	// - max(len(xx), S) words for mulAddScalar access
+	// - S extra words consumed by T = T[1:] shifts
+	// - 2 extra words for carry propagation
+	T := make([]uint64, max(len(xx), m.S)+m.S+2)
 
 	for i := range m.S {
 		yi := uint64(0)
