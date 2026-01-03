@@ -307,4 +307,3 @@ func redcBitwise(x, y, R, N *big.Int) *big.Int {
 
 	return result
 }
-
