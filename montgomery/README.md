@@ -8,6 +8,12 @@ Montgomery multiplication implementation for efficient modular arithmetic.
 - `MontgomeryCIOS` - CIOS algorithm using big.Int internally
 - `MontgomeryCIOSWords` - CIOS algorithm using []uint64 for better performance
 
+## Test
+
+```bash
+go test -v ./...
+```
+
 ## Benchmark
 
 ```bash

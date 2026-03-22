@@ -4,6 +4,7 @@ A collection of arithmetic operations.
 
 ## Packages
 
-- `montgomery` - Montgomery multiplication
-- `pollard` - Pollard's rho algorithm for integer factorization
-- `rabin` - Miller-Rabin primality test
+- `montgomery` - Montgomery multiplication (three implementations: Bitwise, CIOS, CIOSWords)
+- `pollard` - Pollard's rho algorithm for integer factorization using Floyd's cycle detection
+- `rabin` - Miller-Rabin probabilistic primality test
+- `karatsuba` - Karatsuba multiplication algorithm for fast integer multiplication
