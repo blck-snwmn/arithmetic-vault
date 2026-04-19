@@ -8,3 +8,4 @@ A collection of arithmetic operations.
 - `pollard` - Pollard's rho algorithm for integer factorization using Floyd's cycle detection
 - `rabin` - Miller-Rabin probabilistic primality test
 - `karatsuba` - Karatsuba multiplication algorithm for fast integer multiplication
+- `pseudo-mersenne-reduction` - Fast modular reduction for pseudo-Mersenne primes of the form `2^n - c`
