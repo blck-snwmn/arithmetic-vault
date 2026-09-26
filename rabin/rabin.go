@@ -51,7 +51,7 @@ func isPrime(random io.Reader, p *big.Int, count int) (bool, error) {
 	)
 
 out:
-	for i := 0; i < count; i++ {
+	for range count {
 		a.Set(zero)
 		for a.Cmp(zero) == 0 {
 			// a is not zero

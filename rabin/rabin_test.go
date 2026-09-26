@@ -49,7 +49,6 @@ func Test_isPrime(t *testing.T) {
 		{args: args{p: new(big.Int).Sub(new(big.Int).Exp(two, big.NewInt(4423), nil), one)}, want: true, wantErr: false},
 	}
 	for _, tt := range tests {
-		tt := tt
 		t.Run(fmt.Sprintf("input=%v", tt.args.p), func(t *testing.T) {
 			t.Parallel()
 			got, err := isPrime(rand.Reader, tt.args.p, 20)
